@@ -559,6 +559,98 @@
 }
 
 /* ══════════════════════════════════
+   NOTIFICATIONS
+   ══════════════════════════════════ */
+.notification-wrapper {
+  position: relative;
+}
+
+.bell-badge {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background: #ff4757;
+  color: white;
+  width: 16px;
+  height: 16px;
+  font-size: 10px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 2px solid #0f1117;
+}
+
+.notification-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 12px;
+  width: 320px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  z-index: 100;
+  overflow: hidden;
+  animation: slideUpFade 0.2s ease forwards;
+}
+
+.notif-header {
+  padding: 16px;
+  font-weight: 600;
+  color: #fff;
+  border-bottom: 1px solid var(--border-color);
+  background: rgba(0,0,0,0.2);
+}
+
+.notif-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.notif-empty {
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.notif-item {
+  padding: 16px;
+  border-bottom: 1px solid var(--border-color);
+  transition: background 0.2s;
+}
+
+.notif-item:last-child {
+  border-bottom: none;
+}
+
+.notif-item:hover {
+  background: rgba(255,255,255,0.02);
+}
+
+.notif-item-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary);
+  margin-bottom: 4px;
+}
+
+.notif-item-body {
+  font-size: 14px;
+  color: var(--text-main);
+  line-height: 1.4;
+  margin-bottom: 8px;
+}
+
+.notif-item-time {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* ══════════════════════════════════
    RESPONSIVE BREAKPOINTS
    ══════════════════════════════════ */
 
@@ -580,43 +672,120 @@
   .app-layout {
     flex-direction: column;
   }
+  
+  /* 1. Bottom Navigation Bar */
   .sidebar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
     width: 100%;
-    height: auto;
+    height: 70px;
     flex-direction: row;
-    padding: 12px 16px;
-    overflow-x: auto;
+    padding: 0;
+    border-right: none;
+    border-top: 1px solid var(--border-color);
+    background: rgba(15, 17, 23, 0.95);
+    backdrop-filter: blur(10px);
+    z-index: 1000;
   }
-  .brand {
-    display: none;
+  .main-content {
+    margin-bottom: 70px;
+    width: 100%;
+    min-height: calc(100vh - 70px);
   }
+  .brand { display: none; }
+  .user-profile { display: none; }
+  
   .nav-menu {
     flex-direction: row;
-    gap: 4px;
-    flex: 1;
+    gap: 0;
+    width: 100%;
+    justify-content: space-around;
+    align-items: center;
+    padding: 0 10px;
   }
+  
   .nav-item {
-    padding: 10px 14px;
-    border-radius: 10px;
-    border-left: none !important;
+    flex-direction: column;
+    padding: 8px 0;
+    margin: 0;
+    border: none !important;
+    background: transparent !important;
+    position: relative;
+    width: 20%;
+    justify-content: center;
   }
+  
+  .nav-item.active {
+    color: var(--primary);
+  }
+  
+  .nav-item svg {
+    margin-right: 0;
+    margin-bottom: 4px;
+    width: 22px;
+    height: 22px;
+  }
+  
   .nav-label {
-    font-size: 12px;
+    font-size: 10px;
   }
-  .user-profile {
-    display: none;
+  
+  .nav-badge {
+    position: absolute;
+    top: 4px;
+    right: 50%;
+    margin-right: -16px;
   }
+
+  /* 2. Stat cards - 2x2 grid */
   .metrics-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  
+  /* Make the third card span both columns if odd number of cards */
+  .metrics-row .metric-card:last-child:nth-child(odd) {
+    grid-column: span 2;
+  }
+
+  /* 3. Recharts - 100% width, 200px height */
+  .chart-box {
+    width: 100% !important;
+  }
+  .recharts-wrapper, .recharts-surface {
+    width: 100% !important;
+    height: 200px !important;
+  }
+  
+  /* 4. Dashboard grid */
+  .charts-row {
     grid-template-columns: 1fr;
   }
-  .header-search {
-    display: none;
+
+  /* 5. Header */
+  .header-search { display: none; }
+  .header-date { 
+    display: block; 
+    font-size: 12px;
   }
-  .header-date {
-    display: none;
+  .header-title { font-size: 20px; }
+  
+  .header-right .action-btn.primary {
+    display: none; /* Opting to hide "Quick Log" text button to save space if needed, wait. User didn't request this. "show only the date, bell icon, and avatar". Okay, hide Quick Log. */
   }
+
+  /* 6. Macro donut chart centered */
+  .donut-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transform: scale(0.85); /* Make it smaller */
+    transform-origin: center;
+  }
+
   .dashboard-container {
     padding: 16px;
   }
 }
-

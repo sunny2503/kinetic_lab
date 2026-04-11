@@ -299,3 +299,303 @@
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* ── Pending Meal Card ── */
+.pending-meal-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 20px;
+  animation: slideUp 0.3s ease forwards;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.pending-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.pending-header h4 {
+  margin: 0;
+  font-size: 15px;
+  color: var(--primary);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.icon-btn:hover {
+  color: var(--text-main);
+}
+
+.pending-body {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.pending-name {
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--text-main);
+}
+
+.pending-cal {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.pending-macros {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.macro-stat {
+  flex: 1;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 12px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+.macro-stat span {
+  display: block;
+  font-size: 18px;
+  color: var(--text-main);
+  margin-bottom: 4px;
+}
+
+.macro-stat:nth-child(1) span { color: var(--primary); }
+.macro-stat:nth-child(2) span { color: #ffb07c; }
+.macro-stat:nth-child(3) span { color: #6b7280; }
+
+.pending-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.pending-actions button {
+  flex: 1;
+  padding: 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+  font-family: 'Inter', sans-serif;
+}
+
+.cancel-btn {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+}
+
+.cancel-btn:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+.confirm-btn {
+  background: var(--primary);
+  border: 1px solid var(--primary);
+  color: #0f1117;
+  font-weight: 600;
+}
+
+.confirm-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px var(--primary-glow);
+}
+
+/* ── Weekly AI Insights Card ── */
+.weekly-insight-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 24px;
+  margin-top: 16px;
+  margin-bottom: 24px;
+  animation: slideUpFade 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  position: relative;
+  overflow: hidden;
+}
+
+.weekly-insight-card.loading-insight {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-muted);
+  font-size: 14px;
+  padding: 16px 24px;
+  justify-content: center;
+}
+
+.weekly-insight-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--primary), transparent);
+  opacity: 0.5;
+}
+
+.weekly-insight-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.weekly-insight-header h4 {
+  margin: 0;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.cyan-glow {
+  box-shadow: 0 0 15px var(--primary-glow);
+}
+
+.insight-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.insight-box {
+  background: rgba(0,0,0,0.2);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.insight-box .box-label {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  color: var(--primary);
+  font-weight: 600;
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+}
+
+.insight-box p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-main);
+  line-height: 1.5;
+}
+
+.insight-suggestion {
+  background: rgba(0, 229, 192, 0.05);
+  border-left: 3px solid var(--primary);
+  padding: 12px 16px;
+  border-radius: 0 8px 8px 0;
+  margin-bottom: 20px;
+  font-size: 14px;
+  color: var(--text-main);
+  line-height: 1.5;
+}
+
+.insight-suggestion strong {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.insight-motivation {
+  text-align: center;
+  font-style: italic;
+  color: var(--text-muted);
+  font-size: 15px;
+}
+
+@keyframes slideUpFade {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Image Upload & Thumbnails ── */
+
+.ai-camera-btn {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-muted);
+}
+
+.ai-camera-btn[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ai-camera-btn:hover:not([disabled]) {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--primary);
+  border-color: rgba(0, 229, 192, 0.3);
+}
+
+.ai-camera-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.meal-thumb {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  background-size: cover;
+  background-position: center;
+  margin-right: 12px;
+  flex-shrink: 0;
+  border: 1px solid var(--border-color);
+}

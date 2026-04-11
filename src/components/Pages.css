@@ -51,6 +51,157 @@
   color: var(--primary);
 }
 
+/* ══════════════════════════════════
+   ACTIVITY FORM
+   ══════════════════════════════════ */
+.activity-form {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.af-row {
+  display: flex;
+  gap: 16px;
+  align-items: flex-end;
+}
+
+.af-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.af-grow { flex: 1; }
+.af-small { width: 140px; }
+
+.af-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 0.3px;
+}
+
+.af-input {
+  height: 44px;
+  background: rgba(15, 17, 23, 0.6);
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  padding: 0 14px;
+  color: var(--text-main);
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.af-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(0, 229, 192, 0.1);
+}
+
+.af-input::placeholder {
+  color: rgba(139, 146, 165, 0.5);
+}
+
+/* Intensity Toggle Buttons */
+.intensity-group {
+  display: flex;
+  gap: 8px;
+}
+
+.intensity-btn {
+  flex: 1;
+  height: 44px;
+  background: rgba(15, 17, 23, 0.6);
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  color: var(--text-muted);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.3s ease;
+}
+
+.intensity-btn:hover {
+  border-color: rgba(0, 229, 192, 0.3);
+  background: rgba(0, 229, 192, 0.04);
+}
+
+.intensity-btn.active {
+  border-color: var(--primary);
+  background: rgba(0, 229, 192, 0.1);
+  color: var(--primary);
+  box-shadow: 0 0 12px rgba(0, 229, 192, 0.1);
+}
+
+/* Live preview */
+.af-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 20px;
+  border-radius: 10px;
+  background: rgba(74, 222, 128, 0.08);
+  border: 1px solid rgba(74, 222, 128, 0.2);
+  animation: pageFadeIn 0.3s ease-out;
+}
+
+.af-preview-label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.af-preview-val {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: #4ade80;
+}
+
+/* Submit */
+.af-submit {
+  align-self: flex-end;
+  height: 44px;
+  padding: 0 24px;
+  background: var(--primary);
+  border: none;
+  border-radius: 10px;
+  color: #0f1117;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 16px var(--primary-glow);
+}
+
+.af-submit:hover {
+  background: #00ffd4;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px var(--primary-glow);
+}
+
+.af-submit:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
 /* ── Activity List ── */
 .activity-list {
   display: flex;
@@ -114,40 +265,186 @@
   text-align: right;
 }
 
-/* ── Goals Grid ── */
+.activity-delete {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+}
+
+.activity-delete:hover {
+  background: rgba(255, 71, 87, 0.1);
+  border-color: rgba(255, 71, 87, 0.25);
+  color: #ff6b7a;
+}
+
+/* ── Empty State ── */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  gap: 8px;
+}
+
+.empty-icon {
+  font-size: 48px;
+  margin-bottom: 8px;
+  opacity: 0.6;
+}
+
+.empty-text {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.empty-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* ══════════════════════════════════
+   GOALS PAGE
+   ══════════════════════════════════ */
+.goals-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.goals-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
 .goals-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 16px;
 }
 
-.goal-card {
+.goal-card-v2 {
   background: var(--card-bg);
   border: 1px solid var(--card-border);
   border-radius: 14px;
   padding: 20px 24px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
+  transition: var(--transition);
 }
 
-.goal-header {
+.goal-card-v2:hover {
+  border-color: rgba(0, 229, 192, 0.2);
+}
+
+.goal-card-top {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 14px;
 }
 
-.goal-label {
-  font-size: 14px;
-  font-weight: 600;
+.goal-card-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
 }
 
-.goal-pct {
+.goal-card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.goal-card-label {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 500;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.goal-card-nums {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.goal-card-current {
   font-family: 'Space Grotesk', sans-serif;
-  font-size: 16px;
+  font-size: 22px;
   font-weight: 700;
 }
 
+.goal-card-slash {
+  color: var(--text-muted);
+  font-size: 16px;
+}
+
+.goal-card-target {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+  border: 1px dashed transparent;
+  transition: all 0.3s ease;
+}
+
+.goal-card-target:hover {
+  border-color: rgba(0, 229, 192, 0.3);
+  background: rgba(0, 229, 192, 0.06);
+  color: var(--primary);
+}
+
+.goal-card-unit {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.goal-card-pct {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* Inline edit for goal target */
+.goal-edit-input {
+  width: 70px;
+  height: 28px;
+  background: rgba(15, 17, 23, 0.8);
+  border: 1px solid var(--primary);
+  border-radius: 6px;
+  padding: 0 8px;
+  color: var(--primary);
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0, 229, 192, 0.1);
+}
+
+/* Goal Progress Bar (shared) */
 .goal-bar {
   height: 6px;
   background: rgba(255, 255, 255, 0.06);
@@ -159,17 +456,6 @@
   height: 100%;
   border-radius: 3px;
   transition: width 0.6s ease-out;
-}
-
-.goal-values {
-  display: flex;
-  justify-content: space-between;
-  font-size: 12px;
-  color: var(--text-muted);
-}
-
-.goal-target {
-  opacity: 0.6;
 }
 
 /* ── Streak Row ── */
@@ -218,7 +504,9 @@
   50%      { box-shadow: 0 0 0 4px rgba(0, 229, 192, 0.1); }
 }
 
-/* ── Settings ── */
+/* ══════════════════════════════════
+   SETTINGS PAGE
+   ══════════════════════════════════ */
 .settings-section {
   display: flex;
   flex-direction: column;
@@ -238,6 +526,7 @@
   justify-content: space-between;
   padding: 16px 24px;
   border-bottom: 1px solid var(--card-border);
+  gap: 16px;
 }
 
 .settings-row:last-child {
@@ -247,6 +536,7 @@
 .settings-label {
   font-size: 14px;
   font-weight: 500;
+  flex-shrink: 0;
 }
 
 .settings-value {
@@ -264,6 +554,61 @@
   letter-spacing: 0.5px;
 }
 
+/* Editable input inside settings rows */
+.settings-input {
+  flex: 1;
+  max-width: 280px;
+  height: 38px;
+  background: rgba(15, 17, 23, 0.6);
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  padding: 0 12px;
+  color: var(--text-main);
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  outline: none;
+  transition: all 0.3s ease;
+  text-align: right;
+}
+
+.settings-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(0, 229, 192, 0.1);
+}
+
+.settings-input::placeholder {
+  color: rgba(139, 146, 165, 0.4);
+}
+
+/* Save Button */
+.settings-actions-row {
+  justify-content: flex-end;
+  background: rgba(0, 229, 192, 0.03);
+}
+
+.settings-save-btn {
+  height: 38px;
+  padding: 0 20px;
+  background: var(--primary);
+  border: none;
+  border-radius: 8px;
+  color: #0f1117;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 10px var(--primary-glow);
+}
+
+.settings-save-btn:hover {
+  background: #00ffd4;
+  transform: translateY(-1px);
+}
+
 /* ── Toggle Switch ── */
 .toggle-switch {
   width: 44px;
@@ -274,6 +619,7 @@
   cursor: pointer;
   transition: var(--transition);
   position: relative;
+  flex-shrink: 0;
 }
 
 .toggle-switch.on {
@@ -292,14 +638,86 @@
   transform: translateX(20px);
 }
 
-/* ── Responsive ── */
-@media (max-width: 900px) {
-  .page-grid-3 {
-    grid-template-columns: 1fr;
-  }
-  .goals-grid {
-    grid-template-columns: 1fr;
-  }
+/* ── Danger Zone ── */
+.danger-card {
+  border-color: rgba(255, 71, 87, 0.15);
+}
+
+.danger-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.danger-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.danger-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: rgba(255, 71, 87, 0.1);
+  border: 1px solid rgba(255, 71, 87, 0.25);
+  border-radius: 8px;
+  color: #ff6b7a;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+}
+
+.danger-btn:hover {
+  background: rgba(255, 71, 87, 0.18);
+  border-color: rgba(255, 71, 87, 0.4);
+}
+
+.confirm-btns {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.cancel-btn {
+  height: 36px;
+  padding: 0 16px;
+  background: none;
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.cancel-btn:hover {
+  border-color: var(--text-muted);
+  color: var(--text-main);
+}
+
+.destroy-btn {
+  height: 36px;
+  padding: 0 16px;
+  background: #ff4757;
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(255, 71, 87, 0.3);
+}
+
+.destroy-btn:hover {
+  background: #ff6b7a;
+  transform: translateY(-1px);
 }
 
 /* ── Logout Button ── */
@@ -328,4 +746,29 @@
 
 .logout-btn svg {
   flex-shrink: 0;
+}
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .page-grid-3 {
+    grid-template-columns: 1fr;
+  }
+  .goals-grid {
+    grid-template-columns: 1fr;
+  }
+  .af-row {
+    flex-direction: column;
+  }
+  .af-small {
+    width: 100%;
+  }
+  .intensity-group {
+    flex-wrap: wrap;
+  }
+  .settings-input {
+    max-width: 160px;
+  }
+  .page-container {
+    padding: 24px 16px;
+  }
 }

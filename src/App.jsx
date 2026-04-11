@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import './App.css';
 import IntakeChart from './components/IntakeChart';
 import MacroDonut from './components/MacroDonut';
@@ -8,7 +8,38 @@ import DailyLog from './components/DailyLog';
 import { ActivityPage, GoalsPage, SettingsPage } from './components/Pages';
 import Onboarding, { STORAGE_KEY } from './components/Onboarding';
 import { LoginPage, SignupPage } from './components/AuthPages';
-import { auth, onAuthStateChanged, signOut } from './firebase';
+import { auth, isFirebaseConfigured, onAuthStateChanged, signOut } from './firebase';
+
+// ── localStorage helpers ──
+function load(key, fallback) {
+  try {
+    const s = localStorage.getItem(key);
+    return s ? JSON.parse(s) : fallback;
+  } catch { return fallback; }
+}
+function save(key, val) {
+  localStorage.setItem(key, JSON.stringify(val));
+}
+
+// ── Storage keys ──
+const MEALS_KEY = 'kinetic_lab_meals';
+const ACTIVITIES_KEY = 'kinetic_lab_activities';
+const GOALS_KEY = 'kinetic_lab_goals';
+const SETTINGS_KEY = 'kinetic_lab_settings';
+
+const DEFAULT_GOALS = {
+  calorieGoal: 2400,
+  proteinGoal: 150,
+  carbGoal: 250,
+  fatGoal: 65,
+  waterGoal: 8,
+  burnGoal: 500,
+};
+
+const DEFAULT_MEALS = [
+  { id: 1, time: '8:15 AM',  name: 'Oatmeal with Blueberries', calories: 320, protein: 12, carbs: 54, fat: 6,  ai: false },
+  { id: 2, time: '12:30 PM', name: 'Grilled Chicken Salad',     calories: 480, protein: 42, carbs: 18, fat: 22, ai: false },
+];
 
 // ── Feather-style SVG Icons ──
 const Icon = ({ children }) => (
@@ -33,89 +64,229 @@ const NAV_ITEMS = [
   { id: 'Settings',   icon: <IconSettings /> },
 ];
 
-const CALORIE_GOAL = 2400;
-const NET_TARGET = 1600;
-
 export default function App() {
   // ── Firebase auth state ──
-  const [firebaseUser, setFirebaseUser] = useState(undefined); // undefined = loading
-  const [authPage, setAuthPage] = useState('login'); // 'login' | 'signup'
+  const [firebaseUser, setFirebaseUser] = useState(undefined);
+  const [authPage, setAuthPage] = useState('login');
 
   useEffect(() => {
+    if (!isFirebaseConfigured) {
+      // Bypass Firebase if credentials aren't set
+      setFirebaseUser({ uid: 'guest', displayName: 'Guest', isGuest: true });
+      return;
+    }
+
     const unsub = onAuthStateChanged(auth, (fbUser) => {
       setFirebaseUser(fbUser || null);
     });
     return unsub;
   }, []);
 
-  // ── Onboarding / user profile state ──
-  const [userProfile, setUserProfile] = useState(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      return stored ? JSON.parse(stored) : null;
-    } catch { return null; }
-  });
+  // ── Unified App State ──
+  const initialData = useMemo(() => {
+    const data = load('kinetic_lab_state', {});
+    // Fallback to legacy keys if the unified state is empty
+    return {
+      userProfile: data.userProfile || load(STORAGE_KEY, null),
+      meals: data.meals || load(MEALS_KEY, DEFAULT_MEALS),
+      activities: data.activities || load(ACTIVITIES_KEY, []),
+      goals: data.goals || load(GOALS_KEY, DEFAULT_GOALS),
+      settings: data.settings || load(SETTINGS_KEY, {}),
+      water: data.water || 0,
+      notifications: data.notifications || []
+    };
+  }, []);
+
+  const [userProfile, setUserProfile] = useState(initialData.userProfile);
+  const [meals, setMeals] = useState(initialData.meals);
+  const [activities, setActivities] = useState(initialData.activities);
+  const [goals, setGoals] = useState(initialData.goals);
+  const [settings, setSettings] = useState(initialData.settings);
+  const [water, setWater] = useState(initialData.water);
+  const [notifications, setNotifications] = useState(initialData.notifications);
+  const [showNotifications, setShowNotifications] = useState(false);
+
+  // Unified persistence to localStorage under a single key
+  useEffect(() => {
+    save('kinetic_lab_state', { userProfile, meals, activities, goals, settings, water, notifications });
+  }, [userProfile, meals, activities, goals, settings, water, notifications]);
 
   const [activeTab, setActiveTab] = useState('Dashboard');
   const [now, setNow] = useState(new Date());
 
-  // Live clock
-  useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 60_000);
-    return () => clearInterval(t);
-  }, []);
 
-  // ── Live nutrition state ──
-  const [stats, setStats] = useState({
-    calories: 1850,
-    burned: 450,
-    protein: 54,
-    carbs: 72,
-    fat: 28,
-    mealCount: 2,
-  });
 
+  // ── Derived nutrition stats (computed from meals + activities) ──
+  const stats = useMemo(() => {
+    const s = meals.reduce((acc, m) => ({
+      calories: acc.calories + m.calories,
+      protein: acc.protein + m.protein,
+      carbs: acc.carbs + m.carbs,
+      fat: acc.fat + m.fat,
+    }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
+
+    const burned = activities.reduce((acc, a) => acc + a.cal, 0);
+
+    return {
+      ...s,
+      burned,
+      mealCount: meals.length,
+      water: water, // sync actual water state here
+    };
+  }, [meals, activities, water]);
+
+  const calorieGoal = goals.calorieGoal || 2400;
   const net = stats.calories - stats.burned;
-  const pct = Math.min(Math.round((stats.calories / CALORIE_GOAL) * 100), 100);
+  const netTarget = Math.round(calorieGoal * 0.67);
+  const pct = Math.min(Math.round((stats.calories / calorieGoal) * 100), 100);
 
+  // ── Handlers ──
   const handleMealLogged = useCallback((meal) => {
-    setStats((prev) => ({
-      ...prev,
-      calories: prev.calories + meal.calories,
-      protein: prev.protein + meal.protein,
-      carbs: prev.carbs + meal.carbs,
-      fat: prev.fat + meal.fat,
-      mealCount: prev.mealCount + 1,
-    }));
+    setMeals(prev => [...prev, meal]);
   }, []);
 
-  // ── Logout handler ──
+  const handleActivityLogged = useCallback((activity) => {
+    setActivities(prev => [...prev, activity]);
+  }, []);
+
+  const handleDeleteActivity = useCallback((id) => {
+    setActivities(prev => prev.filter(a => a.id !== id));
+  }, []);
+
+  const handleGoalsChange = useCallback((newGoals) => {
+    setGoals(newGoals);
+  }, []);
+
+  const handleSettingsChange = useCallback((newSettings) => {
+    setSettings(newSettings);
+    // Also update userProfile name if changed
+    if (newSettings.displayName && userProfile) {
+      const updated = { ...userProfile, name: newSettings.displayName };
+      setUserProfile(updated);
+      save(STORAGE_KEY, updated);
+    }
+  }, [userProfile]);
+
   const handleLogout = useCallback(async () => {
-    await signOut(auth);
+    if (isFirebaseConfigured) {
+      try { await signOut(auth); } catch(e) { console.error(e); }
+    }
+    localStorage.removeItem('kinetic_lab_state');
+    // Clear legacy keys too just in case
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(MEALS_KEY);
+    localStorage.removeItem(ACTIVITIES_KEY);
+    localStorage.removeItem(GOALS_KEY);
+    localStorage.removeItem(SETTINGS_KEY);
+
     setUserProfile(null);
     setActiveTab('Dashboard');
     setAuthPage('login');
+    if (!isFirebaseConfigured) {
+       setFirebaseUser(undefined);
+       setTimeout(() => setFirebaseUser({ uid: 'guest', displayName: 'Guest', isGuest: true }), 100);
+    }
   }, []);
 
   // ── Derive display name & avatar ──
-  const displayName = userProfile?.name || firebaseUser?.displayName || 'User';
+  const displayName = settings.displayName || userProfile?.name || firebaseUser?.displayName || 'User';
   const userEmail = firebaseUser?.email || '';
-  // Generate a consistent avatar from the user's email
-  const avatarSeed = userEmail ? encodeURIComponent(userEmail) : '12';
-  const avatarUrl = firebaseUser?.photoURL || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(displayName)}&backgroundColor=0f1117&textColor=00e5c0&radius=50`;
+  const avatarUrl = settings.photoUrl || firebaseUser?.photoURL || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(displayName)}&backgroundColor=0f1117&textColor=00e5c0&radius=50`;
+
+  // ── Push Notifications Engine ──
+  const notifRef = useRef({ displayName, pct });
+  useEffect(() => { notifRef.current = { displayName, pct }; }, [displayName, pct]);
+
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+    
+    // Live clock & notification scheduler
+    const t = setInterval(() => {
+      const d = new Date();
+      setNow(d);
+      
+      const hour = d.getHours();
+      const minute = d.getMinutes();
+      const dateStr = d.toDateString();
+
+      const sendNotif = (id, title, body) => {
+        const sentList = load('kinetic_notifs_sent', {});
+        if (sentList[id]) return;
+        
+        sentList[id] = true;
+        save('kinetic_notifs_sent', sentList);
+        
+        if (Notification.permission === 'granted') {
+          new Notification(title, { body, icon: '/favicon.ico' });
+        }
+        setNotifications(prev => [{
+          id: Date.now(),
+          title,
+          body,
+          time: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          read: false
+        }, ...prev]);
+      };
+
+      const ref = notifRef.current;
+
+      // 1. Meal Reminder — Every day at 8am, 1pm, and 7pm
+      if ((hour === 8 || hour === 13 || hour === 19) && minute === 0) {
+        sendNotif(`meal_${dateStr}_${hour}`, "🍽️ Time to log your meal!", `Time to log your meal, ${ref.displayName}!`);
+      }
+      
+      // 2. Water Reminder — Every 2 hours (0, 2, 4...)
+      if (hour % 2 === 0 && minute === 0) {
+        sendNotif(`water_${dateStr}_${hour}`, "💧 Hydration Check", "Have you had water recently? Stay hydrated!");
+      }
+      
+      // 3. Goal Check — At 9pm daily
+      if (hour === 21 && minute === 0) {
+        let msg = ref.pct >= 100 ? "Amazing job hitting your goal!" : "You've got this, don't give up!";
+        sendNotif(`goal_${dateStr}_${hour}`, "📊 Daily Goal Check", `You've hit ${ref.pct}% of your calorie goal today. ${msg}`);
+      }
+    }, 60_000);
+    
+    return () => clearInterval(t);
+  }, []);
+
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  const handleOpenNotifications = () => {
+    setShowNotifications(!showNotifications);
+    if (!showNotifications) {
+      // Mark all as read when opening
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    }
+  };
 
   // ── Page Router ──
   function renderPage() {
     switch (activeTab) {
       case 'Daily Log':
-        return <DailyLog onMealLogged={handleMealLogged} />;
+        return <DailyLog meals={meals} goals={goals} onMealLogged={handleMealLogged} />;
       case 'Activity':
-        return <ActivityPage stats={stats} />;
+        return (
+          <ActivityPage
+            activities={activities}
+            onActivityLogged={handleActivityLogged}
+            onDeleteActivity={handleDeleteActivity}
+          />
+        );
       case 'Goals':
-        return <GoalsPage stats={stats} />;
+        return <GoalsPage stats={stats} goals={goals} onGoalsChange={handleGoalsChange} />;
       case 'Settings':
-        return <SettingsPage onLogout={handleLogout} userName={displayName} userEmail={userEmail} />;
+        return (
+          <SettingsPage
+            onLogout={handleLogout}
+            userName={displayName}
+            userEmail={userEmail}
+            settings={settings}
+            onSettingsChange={handleSettingsChange}
+          />
+        );
       default:
         return (
           <div className="dashboard-container" key="dashboard">
@@ -133,7 +304,7 @@ export default function App() {
                 </div>
                 <div className="progress-labels">
                   <span>0</span>
-                  <span>Goal: {CALORIE_GOAL.toLocaleString()}</span>
+                  <span>Goal: {calorieGoal.toLocaleString()}</span>
                 </div>
               </div>
 
@@ -144,8 +315,12 @@ export default function App() {
                   <div className="metric-icon icon-green"><IconActivity /></div>
                 </div>
                 <div className="metric-value">{stats.burned.toLocaleString()} <span className="metric-unit">kcal</span></div>
-                <div className="metric-trend trend-green">
-                  <span className="trend-arrow">↑</span> 12% from yesterday
+                <div className="progress-bar" style={{background: 'rgba(74, 222, 128, 0.12)'}}>
+                  <div className="progress-fill" style={{width: `${Math.min(Math.round((stats.burned / (goals.burnGoal || 500)) * 100), 100)}%`, background: 'linear-gradient(90deg, #4ade80, #22c55e)'}} />
+                </div>
+                <div className="progress-labels">
+                  <span>0</span>
+                  <span>Goal: {(goals.burnGoal || 500).toLocaleString()}</span>
                 </div>
               </div>
 
@@ -157,9 +332,9 @@ export default function App() {
                 </div>
                 <div className="metric-value">{net.toLocaleString()} <span className="metric-unit">kcal</span></div>
                 <div className="metric-sub">
-                  <span className="target-label">Target: {NET_TARGET.toLocaleString()} kcal</span>
-                  <span className={`target-status ${net <= NET_TARGET ? 'on-track' : 'over'}`}>
-                    {net <= NET_TARGET ? 'On Track' : 'Over'}
+                  <span className="target-label">Target: {netTarget.toLocaleString()} kcal</span>
+                  <span className={`target-status ${net <= netTarget ? 'on-track' : 'over'}`}>
+                    {net <= netTarget ? 'On Track' : 'Over'}
                   </span>
                 </div>
               </div>
@@ -170,22 +345,22 @@ export default function App() {
                   Water Intake
                   <div className="metric-icon icon-blue"><IconActivity /></div>
                 </div>
-                <div className="metric-value">64 <span className="metric-unit">oz</span></div>
+                <div className="metric-value">{stats.water} <span className="metric-unit">glasses</span></div>
                 <div className="segmented-bar">
-                  {[...Array(8)].map((_, i) => (
-                    <div key={i} className={`segment ${i < 5 ? 'filled' : ''}`} />
+                  {[...Array(goals.waterGoal || 8)].map((_, i) => (
+                    <div key={i} className={`segment ${i < stats.water ? 'filled' : ''}`} />
                   ))}
                 </div>
                 <div className="progress-labels">
-                  <span>5 of 8 glasses</span>
-                  <span>62%</span>
+                  <span>{stats.water} of {goals.waterGoal || 8} glasses</span>
+                  <span>{Math.round((stats.water / (goals.waterGoal || 8)) * 100)}%</span>
                 </div>
               </div>
             </section>
 
             {/* Charts Row 1 */}
             <section className="charts-row">
-              <IntakeChart todayCalories={stats.calories} goal={CALORIE_GOAL} />
+              <IntakeChart todayCalories={stats.calories} goal={calorieGoal} />
               <MacroDonut protein={stats.protein} carbs={stats.carbs} fat={stats.fat} />
             </section>
 
@@ -248,7 +423,9 @@ export default function App() {
 
         <nav className="nav-menu">
           {NAV_ITEMS.map(({ id, icon }) => {
-            const badge = id === 'Daily Log' ? stats.mealCount : null;
+            let badge = null;
+            if (id === 'Daily Log') badge = stats.mealCount;
+            if (id === 'Activity') badge = activities.length || null;
             return (
               <div
                 key={id}
@@ -257,7 +434,7 @@ export default function App() {
               >
                 {icon}
                 <span className="nav-label">{id}</span>
-                {badge != null && <span className="nav-badge">{badge}</span>}
+                {badge != null && badge > 0 && <span className="nav-badge">{badge}</span>}
               </div>
             );
           })}
@@ -292,10 +469,30 @@ export default function App() {
               {' — '}
               {now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
             </span>
-            <button className="action-btn bell-btn">
-              <IconBell />
-              <span className="bell-dot" />
-            </button>
+            <div className="notification-wrapper">
+              <button className="action-btn bell-btn" onClick={handleOpenNotifications}>
+                <IconBell />
+                {unreadCount > 0 && <span className="bell-badge">{unreadCount}</span>}
+              </button>
+              {showNotifications && (
+                <div className="notification-dropdown">
+                  <div className="notif-header">Notifications</div>
+                  <div className="notif-list">
+                    {notifications.length === 0 ? (
+                      <div className="notif-empty">No new notifications</div>
+                    ) : (
+                      notifications.slice(0, 10).map((n) => (
+                        <div key={n.id} className="notif-item">
+                          <div className="notif-item-title">{n.title}</div>
+                          <div className="notif-item-body">{n.body}</div>
+                          <div className="notif-item-time">{n.time}</div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
             <div className="header-avatar" style={{backgroundImage: `url(${avatarUrl})`, backgroundSize: 'cover'}} />
             <button className="action-btn primary" onClick={() => setActiveTab('Daily Log')}>+ Quick Log</button>
           </div>

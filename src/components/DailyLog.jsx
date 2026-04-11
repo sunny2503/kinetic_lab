@@ -1,16 +1,22 @@
 import React, { useState, useRef, useEffect } from 'react';
 import './DailyLog.css';
 
-const INITIAL_MEALS = [
-  { id: 1, time: '8:15 AM',  name: 'Oatmeal with Blueberries', calories: 320, protein: 12, carbs: 54, fat: 6,  ai: false },
-  { id: 2, time: '12:30 PM', name: 'Grilled Chicken Salad',     calories: 480, protein: 42, carbs: 18, fat: 22, ai: false },
-];
+const API_BASE = import.meta.env.VITE_API_URL || '';
 
-export default function DailyLog({ onMealLogged }) {
-  const [meals, setMeals] = useState(INITIAL_MEALS);
+const CameraIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+    <circle cx="12" cy="13" r="4"></circle>
+  </svg>
+);
+
+export default function DailyLog({ meals = [], goals, onMealLogged }) {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [insight, setInsight] = useState(null);
+  const [pendingMeal, setPendingMeal] = useState(null);
+  const [weeklyInsight, setWeeklyInsight] = useState(null);
+  const [insightLoading, setInsightLoading] = useState(false);
   const inputRef = useRef(null);
   const listEndRef = useRef(null);
 
@@ -29,6 +35,55 @@ export default function DailyLog({ onMealLogged }) {
     listEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [meals]);
 
+  async function handleImageUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setLoading(true);
+    setInsight(null);
+
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const base64String = reader.result.split(',')[1];
+      const mediaType = file.type || 'image/jpeg';
+
+      try {
+        const res = await fetch(`${API_BASE}/api/analyze-image`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageBase64: base64String, mediaType }),
+        });
+        const data = await res.json();
+        
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+
+        const newMeal = {
+          id: Date.now(),
+          time: timeStr,
+          name: data.food_name || 'Analyzed Meal',
+          calories: data.calories,
+          protein: data.protein,
+          carbs: data.carbs,
+          fat: data.fat,
+          ai: true,
+          photoBase64: reader.result // save the data URL to display it
+        };
+
+        setInsight(data.insight);
+        setPendingMeal(newMeal);
+      } catch (err) {
+        console.error('Failed to analyze image:', err);
+        setInsight('Could not analyze the image.');
+      } finally {
+        setLoading(false);
+        // Reset file input
+        e.target.value = null;
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     if (!input.trim() || loading) return;
@@ -39,7 +94,7 @@ export default function DailyLog({ onMealLogged }) {
     setInsight(null);
 
     try {
-      const res = await fetch('/api/analyze-meal', {
+      const res = await fetch(`${API_BASE}/api/analyze-meal`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ meal: mealName, dailyTotal: totals }),
@@ -61,13 +116,9 @@ export default function DailyLog({ onMealLogged }) {
         ai: true,
       };
 
-      setMeals((prev) => [...prev, newMeal]);
       setInsight(data.insight);
+      setPendingMeal(newMeal);
 
-      // Notify parent to update dashboard stats
-      if (onMealLogged) {
-        onMealLogged(newMeal);
-      }
     } catch (err) {
       console.error('Failed to analyze meal:', err);
       setInsight('Could not reach AI — please check your connection.');
@@ -75,6 +126,44 @@ export default function DailyLog({ onMealLogged }) {
       setLoading(false);
       inputRef.current?.focus();
     }
+  }
+
+  async function handleConfirmPending() {
+    if (pendingMeal && onMealLogged) {
+      onMealLogged(pendingMeal);
+    }
+    
+    // Fetch upgraded weekly insights
+    if (goals) {
+      setInsightLoading(true);
+      try {
+        const res = await fetch(`${API_BASE}/api/meal-insight`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            meals: [...meals, pendingMeal],
+            goals: goals
+          })
+        });
+        const data = await res.json();
+        setWeeklyInsight(data);
+      } catch (err) {
+        console.error('Failed to fetch weekly insight', err);
+      } finally {
+        setInsightLoading(false);
+      }
+    }
+
+    setPendingMeal(null);
+    setInsight(null);
+    inputRef.current?.focus();
+  }
+
+  function handleCancelPending() {
+    setPendingMeal(null);
+    setInsight(null);
+    setInput('');
+    inputRef.current?.focus();
   }
 
   return (
@@ -109,6 +198,9 @@ export default function DailyLog({ onMealLogged }) {
       <div className="meal-list">
         {meals.map((meal) => (
           <div key={meal.id} className={`meal-entry ${meal.ai ? 'ai-entry' : ''}`}>
+            {meal.photoBase64 && (
+              <div className="meal-thumb" style={{backgroundImage: `url(${meal.photoBase64})`}} />
+            )}
             <div className="meal-time">{meal.time}</div>
             <div className="meal-details">
               <div className="meal-name">
@@ -127,36 +219,94 @@ export default function DailyLog({ onMealLogged }) {
         <div ref={listEndRef} />
       </div>
 
-      {/* AI Insight */}
-      {insight && (
-        <div className="ai-insight">
-          <div className="insight-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-            </svg>
+      {/* Old inline AI Insight is removed or can be kept, but we are replacing with the new structured one */}
+
+      {insightLoading && (
+        <div className="weekly-insight-card loading-insight">
+           <div className="spinner" /> Analyzing weekly patterns...
+        </div>
+      )}
+
+      {/* Upgraded Weekly AI Insight Card */}
+      {weeklyInsight && !insightLoading && (
+        <div className="weekly-insight-card">
+          <div className="weekly-insight-header">
+            <div className="insight-icon cyan-glow">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+              </svg>
+            </div>
+            <h4>Kinetic AI Analysis</h4>
           </div>
-          <p>{insight}</p>
+          
+          <div className="insight-grid">
+            <div className="insight-box">
+              <span className="box-label">Pattern Detected</span>
+              <p>{weeklyInsight.pattern}</p>
+            </div>
+            <div className="insight-box">
+              <span className="box-label">Macro Balance</span>
+              <p>{weeklyInsight.macros}</p>
+            </div>
+          </div>
+          
+          <div className="insight-suggestion">
+            <strong>Suggestion:</strong> {weeklyInsight.suggestion}
+          </div>
+          
+          <div className="insight-motivation">
+            "{weeklyInsight.motivation}"
+          </div>
+        </div>
+      )}
+
+      {/* Pending Meal Confirmation */}
+      {pendingMeal && (
+        <div className="pending-meal-card">
+          <div className="pending-header">
+            <h4>Confirm Meal</h4>
+            <button className="icon-btn" onClick={handleCancelPending}>×</button>
+          </div>
+          <div className="pending-body">
+            <div className="pending-name">{pendingMeal.name}</div>
+            <div className="pending-cal">{pendingMeal.calories} kcal</div>
+          </div>
+          <div className="pending-macros">
+            <div className="macro-stat"><span>{pendingMeal.protein}g</span> Protein</div>
+            <div className="macro-stat"><span>{pendingMeal.carbs}g</span> Carbs</div>
+            <div className="macro-stat"><span>{pendingMeal.fat}g</span> Fat</div>
+          </div>
+          <div className="pending-actions">
+            <button className="cancel-btn" onClick={handleCancelPending}>Cancel</button>
+            <button className="confirm-btn" onClick={handleConfirmPending}>Add to Log</button>
+          </div>
         </div>
       )}
 
       {/* AI Chat Input */}
       <form className="ai-input-bar" onSubmit={handleSubmit}>
         <div className="input-glow" />
-        <div className="ai-input-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-          </svg>
-        </div>
+        <label className="ai-camera-btn">
+          <input 
+            type="file" 
+            accept="image/*" 
+            capture="environment"
+            onChange={handleImageUpload} 
+            style={{ display: 'none' }} 
+            disabled={loading || !!pendingMeal}
+          />
+          <CameraIcon />
+        </label>
         <input
           ref={inputRef}
           type="text"
           className="ai-input"
-          placeholder={loading ? 'Analyzing with AI...' : 'Log a meal — e.g. "Grilled salmon with rice"'}
+          placeholder={loading ? 'Analyzing with Vision/AI...' : 'Log a meal — e.g. "100g oatmeal"'}
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          disabled={loading}
+          disabled={loading || !!pendingMeal}
         />
-        <button type="submit" className="ai-send" disabled={loading || !input.trim()}>
+        <button type="submit" className="ai-send" disabled={loading || !input.trim() || !!pendingMeal}>
           {loading ? (
             <div className="spinner" />
           ) : (
