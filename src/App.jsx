@@ -6,6 +6,9 @@ import DailyBars from './components/DailyBars';
 import ActivityRadar from './components/ActivityRadar';
 import DailyLog from './components/DailyLog';
 import { ActivityPage, GoalsPage, SettingsPage } from './components/Pages';
+import Onboarding, { STORAGE_KEY } from './components/Onboarding';
+import { LoginPage, SignupPage } from './components/AuthPages';
+import { auth, onAuthStateChanged, signOut } from './firebase';
 
 // ── Feather-style SVG Icons ──
 const Icon = ({ children }) => (
@@ -34,6 +37,25 @@ const CALORIE_GOAL = 2400;
 const NET_TARGET = 1600;
 
 export default function App() {
+  // ── Firebase auth state ──
+  const [firebaseUser, setFirebaseUser] = useState(undefined); // undefined = loading
+  const [authPage, setAuthPage] = useState('login'); // 'login' | 'signup'
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (fbUser) => {
+      setFirebaseUser(fbUser || null);
+    });
+    return unsub;
+  }, []);
+
+  // ── Onboarding / user profile state ──
+  const [userProfile, setUserProfile] = useState(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      return stored ? JSON.parse(stored) : null;
+    } catch { return null; }
+  });
+
   const [activeTab, setActiveTab] = useState('Dashboard');
   const [now, setNow] = useState(new Date());
 
@@ -67,6 +89,22 @@ export default function App() {
     }));
   }, []);
 
+  // ── Logout handler ──
+  const handleLogout = useCallback(async () => {
+    await signOut(auth);
+    localStorage.removeItem(STORAGE_KEY);
+    setUserProfile(null);
+    setActiveTab('Dashboard');
+    setAuthPage('login');
+  }, []);
+
+  // ── Derive display name & avatar ──
+  const displayName = userProfile?.name || firebaseUser?.displayName || 'User';
+  const userEmail = firebaseUser?.email || '';
+  // Generate a consistent avatar from the user's email
+  const avatarSeed = userEmail ? encodeURIComponent(userEmail) : '12';
+  const avatarUrl = firebaseUser?.photoURL || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(displayName)}&backgroundColor=0f1117&textColor=00e5c0&radius=50`;
+
   // ── Page Router ──
   function renderPage() {
     switch (activeTab) {
@@ -77,7 +115,7 @@ export default function App() {
       case 'Goals':
         return <GoalsPage stats={stats} />;
       case 'Settings':
-        return <SettingsPage />;
+        return <SettingsPage onLogout={handleLogout} userName={displayName} userEmail={userEmail} />;
       default:
         return (
           <div className="dashboard-container" key="dashboard">
@@ -161,6 +199,41 @@ export default function App() {
     }
   }
 
+  // ══════════════════════════════════
+  // RENDER FLOW: Loading → Auth → Onboarding → Dashboard
+  // ══════════════════════════════════
+
+  // 1. Firebase still initializing
+  if (firebaseUser === undefined) {
+    return (
+      <div className="auth-overlay" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div className="auth-spinner" style={{ width: 36, height: 36, borderColor: 'rgba(0,229,192,0.2)', borderTopColor: 'var(--primary)', margin: '0 auto 16px' }} />
+          <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>Loading…</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 2. Not authenticated → show Login or Signup
+  if (!firebaseUser) {
+    if (authPage === 'signup') {
+      return <SignupPage onSwitchToLogin={() => setAuthPage('login')} />;
+    }
+    return <LoginPage onSwitchToSignup={() => setAuthPage('signup')} />;
+  }
+
+  // 3. Authenticated but no profile → show Onboarding
+  if (!userProfile) {
+    return (
+      <Onboarding
+        initialName={firebaseUser.displayName || ''}
+        onComplete={(userData) => setUserProfile(userData)}
+      />
+    );
+  }
+
+  // 4. Fully authenticated + onboarded → Dashboard
   return (
     <div className="app-layout">
       {/* SIDEBAR */}
@@ -191,9 +264,9 @@ export default function App() {
         </nav>
 
         <div className="user-profile">
-          <div className="avatar" style={{backgroundImage: 'url(https://i.pravatar.cc/100?img=12)', backgroundSize: 'cover'}} />
+          <div className="avatar" style={{backgroundImage: `url(${avatarUrl})`, backgroundSize: 'cover'}} />
           <div className="user-info">
-            <h4>Alex Rivers</h4>
+            <h4>{displayName}</h4>
             <p>Premium Member</p>
           </div>
         </div>
@@ -223,7 +296,7 @@ export default function App() {
               <IconBell />
               <span className="bell-dot" />
             </button>
-            <div className="header-avatar" style={{backgroundImage: 'url(https://i.pravatar.cc/100?img=12)', backgroundSize: 'cover'}} />
+            <div className="header-avatar" style={{backgroundImage: `url(${avatarUrl})`, backgroundSize: 'cover'}} />
             <button className="action-btn primary" onClick={() => setActiveTab('Daily Log')}>+ Quick Log</button>
           </div>
         </header>

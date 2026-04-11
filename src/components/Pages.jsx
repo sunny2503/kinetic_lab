@@ -94,13 +94,13 @@ export function GoalsPage({ stats }) {
 }
 
 /* ── Settings Page ── */
-export function SettingsPage() {
+export function SettingsPage({ onLogout, userName = 'User', userEmail = '' }) {
   const sections = [
     {
       title: 'Profile',
       items: [
-        { label: 'Display Name', value: 'Alex Rivers', type: 'text' },
-        { label: 'Email', value: 'alex@kineticlab.io', type: 'text' },
+        { label: 'Display Name', value: userName, type: 'text' },
+        { label: 'Email', value: userEmail || '—', type: 'text' },
         { label: 'Plan', value: 'Premium', type: 'badge' },
       ],
     },
@@ -143,6 +143,24 @@ export function SettingsPage() {
           </div>
         </div>
       ))}
+
+      {/* Logout Section */}
+      <div className="settings-section">
+        <h2 className="page-section-title">Account</h2>
+        <div className="settings-card">
+          <div className="settings-row">
+            <span className="settings-label">Sign out of your account</span>
+            <button className="logout-btn" onClick={onLogout}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
+                <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+              Log Out
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
